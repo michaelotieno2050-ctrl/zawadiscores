@@ -1,158 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>ZawadiScores - Free Gospel Sheets & MIDI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zawadi Scores - Worldwide</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{font-family:Arial;margin:0;background:#f7f5ef;color:#0a3d2a}
-header{background:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;box-shadow:0 2px 10px #ddd}
-.logo{font-size:22px;font-weight:900;color:#0a3d2a}
-.logo span{color:#d4a017}
-button{background:#0a3d2a;color:white;border:none;padding:10px 18px;border-radius:20px;cursor:pointer;font-weight:700}
-button.gold{background:#d4a017;color:#0a3d2a}
-.hero{text-align:center;padding:40px 20px}
-.hero h1{font-size:32px;margin:10px 0}
-.card{background:white;border-radius:12px;padding:15px;margin:15px;box-shadow:0 2px 10px #ddd}
-input,select,textarea{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;z-index:99}
-.modal-box{background:white;padding:25px;border-radius:12px;width:90%;max-width:420px;max-height:90vh;overflow:auto}
-.close{float:right;cursor:pointer;font-size:22px}
-.song{border-bottom:1px solid #eee;padding:12px 0}
-.dropzone{border:2px dashed #0a3d2a;border-radius:12px;padding:25px;text-align:center;background:#f7f5ef;cursor:pointer;margin:10px 0}
-.dropzone.dragover{background:#d4a01733;border-color:#d4a017}
-.dropzone p{margin:5px 0}
-.file-info{font-size:13px;color:green;font-weight:700;margin:8px 0}
+*{box-sizing:border-box} body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f6f3ee;color:#1a1a1a}
+header{background:#1a2a4a;color:white;padding:20px;text-align:center}
+header h1{margin:0;font-size:28px} header p{opacity:.8;margin:6px 0 0}
+.container{max-width:900px;margin:0 auto;padding:16px}
+.card{background:white;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:16px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:6px 0;font-size:16px}
+button{background:#1a2a4a;color:white;border:none;padding:13px 18px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;font-size:16px}
+button:disabled{opacity:.6}
+.song{display:flex;gap:12px;background:white;padding:14px;border-radius:12px;margin-bottom:10px;align-items:center;box-shadow:0 1px 5px rgba(0,0,0,.06)}
+.song b{font-size:17px} .muted{color:#666;font-size:13px}
+.badge{background:#eef2ff;padding:4px 9px;border-radius:20px;font-size:12px;font-weight:700}
+a.dl{background:#e60023;color:white;padding:9px 14px;border-radius:9px;text-decoration:none;font-weight:700;white-space:nowrap}
+#status{font-size:13px;color:#666;text-align:center;padding:8px}
 </style>
 </head>
 <body>
-<header>
-<div class="logo">🎼 Zawadi<span>Scores</span></div>
-<div>
-<button onclick="openModal('authModal')">Sign In</button>
-<button class="gold" onclick="checkUpload()">Upload</button>
-</div>
-</header>
-
-<div class="hero">
-<h1>Free Gospel Music Sheets & MIDI for the World</h1>
-<p>Download, upload and share gospel music. 100% free.</p>
-<input id="searchBox" placeholder="🔍 Search for a song, artist..." oninput="renderSongs()" style="max-width:500px">
-</div>
+<header><h1>🎼 Zawadi Scores</h1><p>Upload once — Everyone in the world sees it</p></header>
+<div class="container">
 
 <div class="card">
-<h3>🎵 Available Scores</h3>
-<div id="songList"></div>
+<h2 style="margin:0 0 8px">Upload a Score</h2>
+<input id="title" placeholder="Song Title e.g. Amazing Grace">
+<input id="composer" placeholder="Composer / Arranger">
+<select id="category"><option>Choir</option><option>Solo</option><option>Piano</option><option>Brass</option><option>Worship</option><option>Other</option></select>
+<input id="file" type="file" accept=".pdf,.doc,.docx,.jpg,.png,.mp3,.mp4">
+<button id="uploadBtn" onclick="uploadSong()">Upload to Worldwide Database</button>
+<p id="status"></p>
 </div>
 
-<div id="authModal" class="modal">
-<div class="modal-box">
-<span class="close" onclick="closeModal('authModal')">&times;</span>
-<h2>Welcome to ZawadiScores</h2>
-<p id="authMsg" style="color:green"></p>
-<input id="userName" placeholder="Your Name (e.g. Michael)">
-<input id="userEmail" placeholder="Your Email">
-<button onclick="doSignIn()" style="width:100%">Sign In / Create Account</button>
-</div>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<input id="search" placeholder="🔍 Search songs..." oninput="renderSongs()" style="margin:0">
+<select id="filter" onchange="renderSongs()" style="width:160px;margin:0"><option value="">All Categories</option><option>Choir</option><option>Solo</option><option>Piano</option><option>Brass</option><option>Worship</option><option>Other</option></select>
 </div>
 
-<div id="uploadModal" class="modal">
-<div class="modal-box">
-<span class="close" onclick="closeModal('uploadModal')">&times;</span>
-<h2>Upload a Score</h2>
-<input id="songTitle" placeholder="Song Title *">
-<input id="songArtist" placeholder="Artist / Choir">
-<select id="songType"><option>Sheet Music (PDF)</option><option>MIDI</option><option>MP3 Audio</option><option>Both</option></select>
-
-<!-- DRAG & DROP -->
-<div id="dropzone" class="dropzone" onclick="document.getElementById('fileInput').click()">
-<p style="font-size:30px">📂</p>
-<p><b>Drag & Drop your file here</b></p>
-<p style="font-size:13px;color:#666">or tap to choose from your phone</p>
-<p style="font-size:12px;color:#888">PDF, MIDI, MP3, JPG up to 10MB</p>
-<input type="file" id="fileInput" accept=".pdf,.mid,.midi,.mp3,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(this.files[0])">
-</div>
-<div id="fileInfo" class="file-info"></div>
-
-<textarea id="songDesc" placeholder="Description / Lyrics note..."></textarea>
-<button onclick="doUpload()" style="width:100%;background:#d4a017;color:#0a3d2a">Publish Score</button>
-<p style="font-size:11px;text-align:center;color:#888">File is saved on this device. For sharing with the whole world, we will connect cloud storage next.</p>
-</div>
+<div id="list"></div>
 </div>
 
 <script>
-let songs = JSON.parse(localStorage.getItem('zawadiSongs') || '[]');
-let user = localStorage.getItem('zawadiUser') || '';
-let currentFile = null;
-let currentFileData = null;
+const SUPABASE_URL = "https://ysnzznmmbbminmhxnqwls.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GfsXQo4xdM7SOx-0Tk0Ikg_PswFjQPN";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let allSongs = [];
 
-function openModal(id){ document.getElementById(id).style.display='flex'; }
-function closeModal(id){ document.getElementById(id).style.display='none'; }
-window.onclick = function(e){ if(e.target.classList.contains('modal')) e.target.style.display='none'; }
-
-let dz = document.getElementById('dropzone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-
-function handleFile(file){
-  if(!file) return;
-  if(file.size > 10*1024*1024){ alert('File too big. Max 10MB. Try a smaller PDF/MIDI.'); return; }
-  currentFile = file;
-  document.getElementById('fileInfo').innerText = '✅ Selected: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB) - Ready to publish!';
-  let reader = new FileReader();
-  reader.onload = function(e){ currentFileData = e.target.result; };
-  reader.readAsDataURL(file);
-  // Auto-fill title if empty
-  if(!document.getElementById('songTitle').value){
-    document.getElementById('songTitle').value = file.name.replace(/\.[^/.]+$/,'').replace(/[-_]/g,' ');
-  }
-}
-
-function doSignIn(){
-  let name = document.getElementById('userName').value.trim();
-  let email = document.getElementById('userEmail').value.trim();
-  if(!name || !email){ alert('Please enter your name and email'); return; }
-  user = name; localStorage.setItem('zawadiUser', name);
-  document.getElementById('authMsg').innerText = 'Welcome, ' + name + '! You are signed in.';
-  setTimeout(()=>{ closeModal('authModal'); alert('Welcome ' + name + '! You can now Upload.'); }, 800);
-}
-function checkUpload(){
-  if(!user){ alert('Please Sign In first'); openModal('authModal'); return; }
-  openModal('uploadModal');
-}
-function doUpload(){
-  let title = document.getElementById('songTitle').value.trim();
-  if(!title){ alert('Please enter song title'); return; }
-  if(!currentFileData){ alert('Please choose a file - drag it or tap the box to pick from your phone'); return; }
-  let s = {
-    title: title,
-    artist: document.getElementById('songArtist').value || 'Unknown',
-    type: document.getElementById('songType').value,
-    fileName: currentFile ? currentFile.name : '',
-    fileData: currentFileData,
-    desc: document.getElementById('songDesc').value || '',
-    by: user
-  };
-  songs.unshift(s);
-  try{ localStorage.setItem('zawadiSongs', JSON.stringify(songs)); } catch(e){ alert('Storage full - file saved but may not stay after refresh. We need cloud storage for big files.'); }
-  closeModal('uploadModal');
-  currentFile = null; currentFileData = null;
-  document.getElementById('fileInfo').innerText = '';
-  document.getElementById('songTitle').value = '';
+async function loadSongs(){
+  const {data, error} = await supabaseClient.from('songs').select('*').order('created_at',{ascending:false});
+  if(error){ document.getElementById('list').innerHTML = '<p>Error loading: '+error.message+'</p>'; return; }
+  allSongs = data || [];
   renderSongs();
-  alert('Published! Thank you ' + user);
 }
 function renderSongs(){
-  let q = (document.getElementById('searchBox').value || '').toLowerCase();
-  let list = document.getElementById('songList');
-  let filtered = songs.filter(s => (s.title + ' ' + s.artist).toLowerCase().includes(q));
-  if(filtered.length === 0){
-    list.innerHTML = '<p>No scores yet. Be the first to upload!</p>';
-    return;
-  }
-  list.innerHTML = filtered.map((s,i) => `<div class="song"><b>${s.title}</b> - ${s.artist}<br><small>${s.type} | by ${s.by} | 📄 ${s.fileName||''}</small><br>${s.desc?`<small>${s.desc}</small><br>`:''}<a href="${s.fileData}" download="${s.fileName||s.title}">📥 Download / View</a></div>`).join('');
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  const f = document.getElementById('filter').value;
+  const filtered = allSongs.filter(s => {
+    const matchQ = (s.title+' '+s.composer).toLowerCase().includes(q);
+    const matchF = !f || s.category===f;
+    return matchQ && matchF;
+  });
+  if(!filtered.length){ document.getElementById('list').innerHTML = '<div class="card" style="text-align:center">No songs yet. Be the first to upload!</div>'; return; }
+  document.getElementById('list').innerHTML = filtered.map(s=>`
+    <div class="song">
+      <div style="flex:1"><b>${escapeHtml(s.title||'Untitled')}</b><div class="muted">${escapeHtml(s.composer||'')}</div><span class="badge">${escapeHtml(s.category||'Other')}</span></div>
+      ${s.file_url ? `<a class="dl" href="${s.file_url}" target="_blank">Download</a>` : ''}
+    </div>`).join('');
 }
-renderSongs();
+function escapeHtml(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function uploadSong(){
+  const title = document.getElementById('title').value.trim();
+  const composer = document.getElementById('composer').value.trim();
+  const category = document.getElementById('filter').value || document.getElementById('category').value;
+  const file = document.getElementById('file').files[0];
+  const btn = document.getElementById('uploadBtn');
+  const status = document.getElementById('status');
+  if(!title){ alert('Please enter song title'); return; }
+  if(!file){ alert('Please choose a file'); return; }
+  btn.disabled=true; status.textContent='Uploading... please wait';
+  try{
+    const fileName = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    // Try storage upload, if bucket not exists we still save record
+    let file_url = '';
+    const {data:up, error:upErr} = await supabaseClient.storage.from('scores').upload(fileName, file);
+    if(!upErr){
+      const {data:pub} = supabaseClient.storage.from('scores').getPublicUrl(fileName);
+      file_url = pub.publicUrl;
+    }
+    const {error} = await supabaseClient.from('songs').insert([{title, composer, category, file_url, file_name: file.name}]);
+    if(error) throw error;
+    status.textContent='✅ Uploaded! Everyone can now see it.';
+    document.getElementById('title').value=''; document.getElementById('composer').value=''; document.getElementById('file').value='';
+    loadSongs();
+  }catch(e){ alert('Upload failed: '+e.message+'\n\nTip: In Supabase go to Storage > Create Bucket named scores > Make it Public'); status.textContent='Failed: '+e.message; }
+  btn.disabled=false;
+}
+loadSongs();
 </script>
 </body>
 </html>
