@@ -37,7 +37,7 @@ input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-r
 <div id="list"></div>
 
 <script>
-const supabaseUrl = 'https://ysnzznmbbminmhxnqwls.supabase.co/rest/v1/';
+const supabaseUrl = 'https://ysnzznmbbminmhxnqwls.supabase.co';
 const supabaseKey = 'sb_publishable_GfsXQo4xdM7SOx-0Tk0Ikg_PswFjQPN';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
