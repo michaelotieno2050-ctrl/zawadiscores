@@ -10,7 +10,6 @@ header{background:white;padding:15px 20px;display:flex;justify-content:space-bet
 button{background:#0a3d2a;color:white;border:none;padding:10px 18px;border-radius:20px;cursor:pointer}
 .card{background:white;border-radius:12px;padding:15px;margin:15px;box-shadow:0 2px 10px #ddd}
 input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
-#status{text-align:center;padding:10px;color:#666}
 </style>
 </head>
 <body>
@@ -18,15 +17,11 @@ input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-r
 <b style="font-size:22px">🎼 ZawadiScores</b>
 <div><button onclick="showUpload()">Upload</button> <button id="authBtn" onclick="signIn()">Sign In</button></div>
 </header>
-
 <div style="padding:20px;text-align:center">
 <h1>Free Gospel Music Sheets & MIDI for the World</h1>
 <p>Original Compositions & Public Domain Hymns Only</p>
 <input id="search" placeholder="Search hymns, composer..." onkeyup="loadScores()">
 </div>
-
-<div id="status">Loading scores...</div>
-
 <div id="uploadBox" style="display:none" class="card">
 <h3>Upload - Sign In Required</h3>
 <input id="title" placeholder="Title e.g. Amazing Grace">
@@ -37,47 +32,30 @@ input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-r
 <button onclick="uploadScore()">Publish Free</button>
 <p id="uploadStatus"></p>
 </div>
-
 <div id="list"></div>
-
 <script>
 const supabaseUrl = 'https://ysnzznmbbminmhxnqwls.supabase.co';
 const supabaseKey = 'sb_publishable_GfsXQo4xdM7SOx-0Tk0Ikg_PswFjQPN';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
 async function signIn(){
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider:'google',
-    options:{ redirectTo: window.location.origin }
-  });
-  if(error) alert('Sign in error: ' + error.message);
+  await supabase.auth.signInWithOAuth({provider:'google', options:{redirectTo: window.location.origin}});
 }
-
 async function showUpload(){
   const {data} = await supabase.auth.getUser();
   if(!data.user){ alert('Please Sign In to upload. Downloading is free for everyone.'); signIn(); return; }
   document.getElementById('uploadBox').style.display='block';
 }
-
 async function loadScores(){
   let q = document.getElementById('search').value || '';
-  document.getElementById('status').textContent = 'Loading scores...';
   let {data, error} = await supabase.from('scores').select('*').order('created_at',{ascending:false});
-  if(error){
-    document.getElementById('status').textContent = '';
-    document.getElementById('list').innerHTML = '<p style="text-align:center;color:red">ERROR: '+error.message+'<br>Check Supabase table "scores" exists.</p>';
-    return;
-  }
+  if(error){ document.getElementById('list').innerHTML = '<p style="text-align:center;color:red">ERROR: '+error.message+'</p>'; return; }
   if(!data) data = [];
   if(q) data = data.filter(s=> ((s.title||'')+(s.composer||'')).toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('status').textContent = data.length ? '' : '';
   document.getElementById('list').innerHTML = data.map(s=>`
-  <div class="card"><b>${s.title || 'Untitled'}</b> - ${s.composer || ''}<br>
-  ${s.category || ''} • ${s.voicing || ''}<br><br>
-  ${s.pdf_url ? `<a href="${s.pdf_url}" target="_blank"><button>Free Download PDF</button></a>` : '<i>No PDF attached</i>'}
+  <div class="card"><b>${s.title||'Untitled'}</b> - ${s.composer||''}<br>${s.category||''} • ${s.voicing||''}<br><br>
+  ${s.pdf_url ? `<a href="${s.pdf_url}" target="_blank"><button>Free Download PDF</button></a>` : '<i>No PDF</i>'}
   </div>`).join('') || '<p style="text-align:center">No scores yet. Be the first to upload!</p>';
 }
-
 async function uploadScore(){
   const {data:{user}} = await supabase.auth.getUser();
   if(!user){ alert('Please Sign In first'); return; }
@@ -92,26 +70,11 @@ async function uploadScore(){
     if(upErr){ document.getElementById('uploadStatus').textContent = 'Upload error: ' + upErr.message; return; }
     pdf_url = supabase.storage.from('sheets').getPublicUrl(name).data.publicUrl;
   }
-  let {error} = await supabase.from('scores').insert({
-    title: title,
-    composer: document.getElementById('composer').value,
-    category: document.getElementById('category').value,
-    voicing: document.getElementById('voicing').value,
-    pdf_url: pdf_url,
-    uploader_id: user.id,
-    uploader_name: user.email
-  });
+  let {error} = await supabase.from('scores').insert({title:title, composer: document.getElementById('composer').value, category: document.getElementById('category').value, voicing: document.getElementById('voicing').value, pdf_url: pdf_url, uploader_id: user.id, uploader_name: user.email});
   if(error){ document.getElementById('uploadStatus').textContent = 'Save error: ' + error.message; return; }
-  document.getElementById('uploadStatus').textContent = '';
   alert('Published! Thank you for the gift.');
   loadScores();
 }
-
-// Update button if already signed in
-supabase.auth.getUser().then(({data})=>{
-  if(data.user) document.getElementById('authBtn').textContent = 'Signed in: ' + data.user.email;
-});
-
 loadScores();
 </script>
 </body>
