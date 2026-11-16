@@ -1,105 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zawadi Scores - Worldwide</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zawadi Scores</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box} body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f6f3ee;color:#1a1a1a}
-header{background:#1a2a4a;color:white;padding:20px;text-align:center}
-header h1{margin:0;font-size:28px} header p{opacity:.8;margin:6px 0 0}
-.container{max-width:900px;margin:0 auto;padding:16px}
-.card{background:white;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:16px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:6px 0;font-size:16px}
-button{background:#1a2a4a;color:white;border:none;padding:13px 18px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;font-size:16px}
-button:disabled{opacity:.6}
-.song{display:flex;gap:12px;background:white;padding:14px;border-radius:12px;margin-bottom:10px;align-items:center;box-shadow:0 1px 5px rgba(0,0,0,.06)}
-.song b{font-size:17px} .muted{color:#666;font-size:13px}
-.badge{background:#eef2ff;padding:4px 9px;border-radius:20px;font-size:12px;font-weight:700}
-a.dl{background:#e60023;color:white;padding:9px 14px;border-radius:9px;text-decoration:none;font-weight:700;white-space:nowrap}
-#status{font-size:13px;color:#666;text-align:center;padding:8px}
-</style>
-</head>
-<body>
-<header><h1>🎼 Zawadi Scores</h1><p>Upload once — Everyone in the world sees it</p></header>
-<div class="container">
+<style>body{font-family:system-ui;padding:16px;max-width:800px;margin:auto;background:#f8f9fa} .card{background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 1px 5px #0001} input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:8px;border:1px solid #ddd} button{background:#111;color:#fff;font-weight:700} .top{display:flex;justify-content:space-between;align-items:center} .small{font-size:13px;color:#666}</style>
+</head><body>
+<div class="top"><h2>🎼 Zawadi Scores</h2><div id="authBtns"></div></div>
+<p class="small">Anybody can download. Only composers with an account can upload.</p>
 
-<div class="card">
-<h2 style="margin:0 0 8px">Upload a Score</h2>
-<input id="title" placeholder="Song Title e.g. Amazing Grace">
-<input id="composer" placeholder="Composer / Arranger">
-<select id="category"><option>Choir</option><option>Solo</option><option>Piano</option><option>Brass</option><option>Worship</option><option>Other</option></select>
-<input id="file" type="file" accept=".pdf,.doc,.docx,.jpg,.png,.mp3,.mp4">
-<button id="uploadBtn" onclick="uploadSong()">Upload to Worldwide Database</button>
-<p id="status"></p>
+<div id="loginBox" class="card">
+<h3>Composer Login / Sign Up</h3>
+<input id="email" type="email" placeholder="Composer email">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="signup()" style="background:#fff;color:#111">Create Composer Account</button>
+<p class="small" id="authMsg"></p>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:12px">
-<input id="search" placeholder="🔍 Search songs..." oninput="renderSongs()" style="margin:0">
-<select id="filter" onchange="renderSongs()" style="width:160px;margin:0"><option value="">All Categories</option><option>Choir</option><option>Solo</option><option>Piano</option><option>Brass</option><option>Worship</option><option>Other</option></select>
+<div id="uploadBox" class="card" style="display:none">
+<h3>Upload Song - <span id="who"></span></h3>
+<input id="title" placeholder="Song Title">
+<input id="composer" placeholder="Composer Name">
+<input id="file" type="file" accept=".pdf,.mp3,.mp4,.jpg,.png">
+<button onclick="upload()">Upload Song</button>
+<button onclick="logout()" style="background:#eee;color:#111">Logout</button>
+<p id="msg"></p>
 </div>
 
+<h3>All Songs - Free Download For Everyone</h3>
 <div id="list"></div>
-</div>
 
 <script>
-const SUPABASE_URL = "https://ysnzznmmbbminmhxnqwls.supabase.co";
-const SUPABASE_KEY = "sb_publishable_GfsXQo4xdM7SOx-0Tk0Ikg_PswFjQPN";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let allSongs = [];
+const supabaseClient = supabase.createClient("YOUR_SUPABASE_URL","YOUR_SUPABASE_ANON_KEY");
 
+async function checkUser(){
+  const {data:{user}} = await supabaseClient.auth.getUser();
+  if(user){
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('uploadBox').style.display='block';
+    document.getElementById('who').innerText = user.email;
+    document.getElementById('authBtns').innerHTML = `<span class="small">${user.email}</span>`;
+  } else {
+    document.getElementById('loginBox').style.display='block';
+    document.getElementById('uploadBox').style.display='none';
+    document.getElementById('authBtns').innerHTML = `<span class="small">Not logged in - Viewing as Guest</span>`;
+  }
+}
+async function signup(){
+  const email=document.getElementById('email').value, password=document.getElementById('pass').value;
+  const {error} = await supabaseClient.auth.signUp({email,password});
+  document.getElementById('authMsg').innerText = error ? error.message : "Account created! Now tap Login.";
+}
+async function login(){
+  const email=document.getElementById('email').value, password=document.getElementById('pass').value;
+  const {error} = await supabaseClient.auth.signInWithPassword({email,password});
+  if(error) document.getElementById('authMsg').innerText = error.message;
+  else checkUser();
+}
+async function logout(){ await supabaseClient.auth.signOut(); checkUser(); }
+
+async function upload(){
+  const title=document.getElementById('title').value;
+  const composer=document.getElementById('composer').value;
+  const file=document.getElementById('file').files[0];
+  if(!title||!file) return alert("Add title + file");
+  document.getElementById('msg').innerText="Uploading...";
+  const path = Date.now()+"_"+file.name;
+  const {error:upErr} = await supabaseClient.storage.from('scores').upload(path, file);
+  if(upErr) return document.getElementById('msg').innerText = upErr.message;
+  const {data} = supabaseClient.storage.from('scores').getPublicUrl(path);
+  const {error} = await supabaseClient.from('songs').insert([{title, composer, file_url:data.publicUrl, file_name:file.name}]);
+  document.getElementById('msg').innerText = error ? error.message : "✅ Uploaded!";
+  if(!error) loadSongs();
+}
 async function loadSongs(){
-  const {data, error} = await supabaseClient.from('songs').select('*').order('created_at',{ascending:false});
-  if(error){ document.getElementById('list').innerHTML = '<p>Error loading: '+error.message+'</p>'; return; }
-  allSongs = data || [];
-  renderSongs();
+  const {data} = await supabaseClient.from('songs').select('*').order('created_at',{ascending:false});
+  document.getElementById('list').innerHTML = (data||[]).map(s=>`
+    <div class="card"><b>${s.title}</b><br><span class="small">By ${s.composer||'Unknown'} • ${s.composer_email||''}</span><br><br>
+    <a href="${s.file_url}" target="_blank" download><button>⬇️ Download</button></a></div>`).join('') || "No songs yet";
 }
-function renderSongs(){
-  const q = (document.getElementById('search').value||'').toLowerCase();
-  const f = document.getElementById('filter').value;
-  const filtered = allSongs.filter(s => {
-    const matchQ = (s.title+' '+s.composer).toLowerCase().includes(q);
-    const matchF = !f || s.category===f;
-    return matchQ && matchF;
-  });
-  if(!filtered.length){ document.getElementById('list').innerHTML = '<div class="card" style="text-align:center">No songs yet. Be the first to upload!</div>'; return; }
-  document.getElementById('list').innerHTML = filtered.map(s=>`
-    <div class="song">
-      <div style="flex:1"><b>${escapeHtml(s.title||'Untitled')}</b><div class="muted">${escapeHtml(s.composer||'')}</div><span class="badge">${escapeHtml(s.category||'Other')}</span></div>
-      ${s.file_url ? `<a class="dl" href="${s.file_url}" target="_blank">Download</a>` : ''}
-    </div>`).join('');
-}
-function escapeHtml(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-async function uploadSong(){
-  const title = document.getElementById('title').value.trim();
-  const composer = document.getElementById('composer').value.trim();
-  const category = document.getElementById('filter').value || document.getElementById('category').value;
-  const file = document.getElementById('file').files[0];
-  const btn = document.getElementById('uploadBtn');
-  const status = document.getElementById('status');
-  if(!title){ alert('Please enter song title'); return; }
-  if(!file){ alert('Please choose a file'); return; }
-  btn.disabled=true; status.textContent='Uploading... please wait';
-  try{
-    const fileName = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    // Try storage upload, if bucket not exists we still save record
-    let file_url = '';
-    const {data:up, error:upErr} = await supabaseClient.storage.from('scores').upload(fileName, file);
-    if(!upErr){
-      const {data:pub} = supabaseClient.storage.from('scores').getPublicUrl(fileName);
-      file_url = pub.publicUrl;
-    }
-    const {error} = await supabaseClient.from('songs').insert([{title, composer, category, file_url, file_name: file.name}]);
-    if(error) throw error;
-    status.textContent='✅ Uploaded! Everyone can now see it.';
-    document.getElementById('title').value=''; document.getElementById('composer').value=''; document.getElementById('file').value='';
-    loadSongs();
-  }catch(e){ alert('Upload failed: '+e.message+'\n\nTip: In Supabase go to Storage > Create Bucket named scores > Make it Public'); status.textContent='Failed: '+e.message; }
-  btn.disabled=false;
-}
-loadSongs();
-</script>
-</body>
-</html>
+checkUser(); loadSongs();
+</script></body></html>
